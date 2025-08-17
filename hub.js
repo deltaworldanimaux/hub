@@ -4,113 +4,133 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+
+// Enhanced CORS configuration
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
-// connect to MongoDB Atlas
+// MongoDB connection with error handling
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000
 });
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "❌ MongoDB connection error:"));
 db.once("open", () => console.log("✅ Connected to MongoDB Atlas"));
 
-// ----- MODELS -----
+// Store Schema
 const StoreSchema = new mongoose.Schema({
   storeId: { type: String, required: true, unique: true },
   storeName: { type: String, required: true },
   products: { type: Array, default: [] },
-  clients: { type: Array, default: [] },
   orders: { type: Array, default: [] },
-});
+}, { timestamps: true }); // Added timestamps
 
 const Store = mongoose.model("Store", StoreSchema);
-// Add at the top after express initialization
-const corsOptions = {
-  origin: '*', // Allow all origins (adjust in production)
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
 
-app.use(cors(corsOptions));
-
-// Add this before your routes
-app.options('*', cors(corsOptions)); // Enable preflight for all routes
-
-// ----- ROUTES -----
-
-// 1. Store pushes products
-app.post("/sync/products/:storeId", async (req, res) => {
-  const { storeId } = req.params;
-  await Store.updateOne(
-    { storeId },
-    { $set: { products: req.body } },
-    { upsert: true }
-  );
-  res.json({ success: true });
-});
-
-// 2. Clients get products
-app.get("/products/:storeId", async (req, res) => {
-  const store = await Store.findOne({ storeId: req.params.storeId });
-  res.json(store?.products || []);
-});
+// ----- Routes -----
 
 // Get all stores
-app.get("/stores", async (req, res) => {
+app.get("/api/stores", async (req, res) => {
   try {
     const stores = await Store.find({}, 'storeId storeName');
     res.json(stores);
   } catch (error) {
+    console.error("Error fetching stores:", error);
     res.status(500).json({ error: "Error fetching stores" });
   }
 });
-// 3. Client places an order
-app.post("/orders/:storeId", async (req, res) => {
-  const { storeId } = req.params;
-  const order = req.body;
 
-  const store = await Store.findOneAndUpdate(
-    { storeId },
-    { $push: { orders: order } },
-    { new: true, upsert: true }
-  );
-
-  res.json({ success: true, order });
+// Store pushes products
+app.post("/api/sync/products/:storeId", async (req, res) => {
+  try {
+    const { storeId } = req.params;
+    await Store.updateOne(
+      { storeId },
+      { $set: { 
+        products: req.body.products,
+        storeName: req.body.storeName 
+      }},
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error syncing products:", error);
+    res.status(500).json({ error: "Error syncing products" });
+  }
 });
 
-app.delete("/orders/:storeId/:orderId", async (req, res) => {
-  const { storeId, orderId } = req.params;
-  
-  await Store.updateOne(
-    { storeId },
-    { $pull: { orders: { id: orderId } } }
-  );
-  
-  res.json({ success: true });
-});
-// 4. Store pulls new orders
-app.get("/sync/orders/:storeId", async (req, res) => {
-  const store = await Store.findOne({ storeId: req.params.storeId });
-  res.json(store?.orders || []);
+// Clients get products
+app.get("/api/products/:storeId", async (req, res) => {
+  try {
+    const store = await Store.findOne({ storeId: req.params.storeId });
+    res.json(store?.products || []);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Error fetching products" });
+  }
 });
 
-// 5. Store clears processed orders (optional)
-app.post("/sync/orders/:storeId/clear", async (req, res) => {
-  const { storeId } = req.params;
-  await Store.updateOne({ storeId }, { $set: { orders: [] } });
-  res.json({ success: true });
+// Client places an order
+app.post("/api/orders/:storeId", async (req, res) => {
+  try {
+    const { storeId } = req.params;
+    const order = req.body;
+
+    await Store.updateOne(
+      { storeId },
+      { $push: { orders: order } },
+      { upsert: true }
+    );
+
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error("Error placing order:", error);
+    res.status(500).json({ error: "Error placing order" });
+  }
 });
 
-// health check
+// Store pulls new orders
+app.get("/api/sync/orders/:storeId", async (req, res) => {
+  try {
+    const store = await Store.findOne({ storeId: req.params.storeId });
+    res.json(store?.orders || []);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ error: "Error fetching orders" });
+  }
+});
+
+// Delete specific order
+app.delete("/api/orders/:storeId/:orderId", async (req, res) => {
+  try {
+    const { storeId, orderId } = req.params;
+    await Store.updateOne(
+      { storeId },
+      { $pull: { orders: { id: orderId } } }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    res.status(500).json({ error: "Error deleting order" });
+  }
+});
+
+// Health check
 app.get("/", (req, res) => {
   res.send("Hub API is running ✅");
 });
 
-app.use(express.static("public"));
-
-// ----- START -----
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Hub running on port ${PORT}`));

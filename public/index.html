@@ -1,87 +1,319 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Online Stores Hub</title>
   <style>
-    .store { padding: 15px; border: 1px solid #ddd; margin: 10px; cursor: pointer; }
-    .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-    .product-card { border: 1px solid #eee; padding: 10px; text-align: center; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f7fa;
+      padding: 20px;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .stores-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 25px;
+      margin-bottom: 40px;
+    }
+    
+    .store-card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .store-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .store-header {
+      padding: 20px;
+      background: #4e54c8;
+      color: white;
+    }
+    
+    .store-content {
+      padding: 20px;
+    }
+    
+    .products-container {
+      display: none;
+      margin-top: 30px;
+    }
+    
+    .back-button {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background: #4e54c8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s;
+    }
+    
+    .back-button:hover {
+      background: #3f43a8;
+    }
+    
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    
+    .product-card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    
+    .product-image {
+      height: 200px;
+      background-color: #f0f4f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: #4e54c8;
+    }
+    
+    .product-info {
+      padding: 20px;
+    }
+    
+    .order-button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: #4e54c8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 15px;
+      transition: background 0.3s;
+    }
+    
+    .order-button:hover {
+      background: #3f43a8;
+    }
+    
+    .loader {
+      text-align: center;
+      padding: 30px;
+      font-size: 1.2rem;
+      color: #4e54c8;
+    }
+    
+    .error {
+      color: #e74c3c;
+      padding: 20px;
+      text-align: center;
+      background: #fdeded;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
   </style>
 </head>
 <body>
-  <h1>Available Stores</h1>
-  <div id="stores-container"></div>
-  
-  <div id="products-container" style="display:none;">
-    <button onclick="showStores()">← Back to Stores</button>
-    <h2 id="store-title"></h2>
-    <div class="products"></div>
+  <div class="container">
+    <header>
+      <h1>Online Stores Hub</h1>
+      <p>Browse products from multiple stores</p>
+    </header>
+    
+    <div id="stores-container" class="stores-container">
+      <!-- Stores will load here -->
+      <div class="loader">Loading stores...</div>
+    </div>
+    
+    <div id="products-container" class="products-container">
+      <button class="back-button" onclick="showStores()">← Back to Stores</button>
+      <h2 id="store-title" class="store-title"></h2>
+      <div class="products-grid" id="products-grid">
+        <!-- Products will load here -->
+      </div>
+    </div>
   </div>
 
   <script>
-    const HUB_URL = "https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev/";
+    const HUB_URL = "https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev";
     let currentStoreId = null;
+    let currentStoreName = null;
 
+    // Load all stores
     async function loadStores() {
-      const res = await fetch(`${HUB_URL}/stores`);
-      const stores = await res.json();
-      
-      const container = document.getElementById('stores-container');
-      container.innerHTML = '';
-      
-      stores.forEach(store => {
-        const storeEl = document.createElement('div');
-        storeEl.className = 'store';
-        storeEl.innerHTML = `<h3>${store.storeName}</h3>`;
-        storeEl.onclick = () => showProducts(store.storeId, store.storeName);
-        container.appendChild(storeEl);
-      });
+      try {
+        const storesContainer = document.getElementById('stores-container');
+        storesContainer.innerHTML = '<div class="loader">Loading stores...</div>';
+        
+        const response = await fetch(`${HUB_URL}/api/stores`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to load stores: ${response.status}`);
+        }
+        
+        const stores = await response.json();
+        
+        if (stores.length === 0) {
+          storesContainer.innerHTML = '<div class="error">No stores available</div>';
+          return;
+        }
+        
+        let storesHTML = '';
+        
+        stores.forEach(store => {
+          storesHTML += `
+            <div class="store-card" onclick="showProducts('${store.storeId}', '${store.storeName}')">
+              <div class="store-header">
+                <h3>${store.storeName}</h3>
+              </div>
+              <div class="store-content">
+                <p>Store ID: ${store.storeId}</p>
+                <p>Click to view products</p>
+              </div>
+            </div>
+          `;
+        });
+        
+        storesContainer.innerHTML = storesHTML;
+      } catch (error) {
+        console.error("Error loading stores:", error);
+        document.getElementById('stores-container').innerHTML = `
+          <div class="error">Error loading stores: ${error.message}</div>
+        `;
+      }
     }
 
+    // Show products for a specific store
     async function showProducts(storeId, storeName) {
       currentStoreId = storeId;
-      document.getElementById('store-title').textContent = storeName;
+      currentStoreName = storeName;
+      
+      // Show products container, hide stores
       document.getElementById('stores-container').style.display = 'none';
       document.getElementById('products-container').style.display = 'block';
+      document.getElementById('store-title').textContent = storeName;
       
-      const res = await fetch(`${HUB_URL}/products/${storeId}`);
-      const products = await res.json();
+      const productsGrid = document.getElementById('products-grid');
+      productsGrid.innerHTML = '<div class="loader">Loading products...</div>';
       
-      const container = document.querySelector('#products-container .products');
-      container.innerHTML = '';
-      
-      products.forEach(product => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.innerHTML = `
-          <h4>${product.name}</h4>
-          <p>${product.price} DH/${product.type}</p>
-          <button onclick="orderProduct('${product.id}')">Order</button>
+      try {
+        const response = await fetch(`${HUB_URL}/api/products/${storeId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to load products: ${response.status}`);
+        }
+        
+        const products = await response.json();
+        
+        if (products.length === 0) {
+          productsGrid.innerHTML = '<div class="error">No products available in this store</div>';
+          return;
+        }
+        
+        let productsHTML = '';
+        
+        products.forEach(product => {
+          productsHTML += `
+            <div class="product-card">
+              <div class="product-image">
+                ${product.image ? 
+                  `<img src="${product.image}" alt="${product.name}" style="width:100%;height:100%;object-fit:cover;">` : 
+                  '📦'
+                }
+              </div>
+              <div class="product-info">
+                <h3>${product.name}</h3>
+                <p>Price: ${product.price} DH/${product.type}</p>
+                <p>Available: ${product.amount} ${product.type}</p>
+                <button class="order-button" onclick="orderProduct('${product.id}', '${product.name}')">
+                  Order Now
+                </button>
+              </div>
+            </div>
+          `;
+        });
+        
+        productsGrid.innerHTML = productsHTML;
+      } catch (error) {
+        console.error("Error loading products:", error);
+        productsGrid.innerHTML = `
+          <div class="error">Error loading products: ${error.message}</div>
         `;
-        container.appendChild(card);
-      });
+      }
     }
 
-    async function orderProduct(productId) {
-      const order = {
-        id: `ORD-${Date.now()}`,
-        productId,
-        date: new Date().toISOString(),
-        status: 'pending'
-      };
-      
-      await fetch(`${HUB_URL}/orders/${currentStoreId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(order)
-      });
-      
-      alert('Order placed successfully!');
+    // Place an order
+    async function orderProduct(productId, productName) {
+      try {
+        const order = {
+          id: `ORD-${Date.now()}`,
+          productId,
+          productName,
+          date: new Date().toISOString(),
+          status: 'pending'
+        };
+        
+        const response = await fetch(`${HUB_URL}/api/orders/${currentStoreId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(order)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Order failed: ${response.status}`);
+        }
+        
+        alert(`Order placed successfully for ${productName}!`);
+      } catch (error) {
+        console.error("Error placing order:", error);
+        alert(`Order failed: ${error.message}`);
+      }
     }
 
+    // Show stores view
     function showStores() {
       document.getElementById('products-container').style.display = 'none';
-      document.getElementById('stores-container').style.display = 'block';
+      document.getElementById('stores-container').style.display = 'grid';
     }
 
     // Initialize
