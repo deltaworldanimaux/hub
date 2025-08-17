@@ -8,7 +8,7 @@
   <h1>Client App - Test</h1>
 
   <label>Store ID: 
-    <input type="text" id="storeId" value="store1">
+    <input type="text" id="storeId" value="store_ma1">
   </label>
   <button onclick="loadProducts()">Load Products</button>
 
@@ -25,10 +25,18 @@ const HUB_URL = "https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.ki
 
 async function loadProducts() {
   const storeId = document.getElementById("storeId").value;
-  const res = await fetch(`${HUB_URL}/products/${storeId}`);
-  const products = await res.json();
-  const list = document.getElementById("products");
-  list.innerHTML = products.map(p => `<li>${p.name} - ${p.price}</li>`).join("");
+  try {
+    const res = await fetch(`${HUB_URL}/products/${storeId}`);
+    if (!res.ok) {
+      throw new Error(`Failed to load products: ${res.status} ${res.statusText}`);
+    }
+    const products = await res.json();
+    const list = document.getElementById("products");
+    list.innerHTML = products.map(p => `<li>${p.name} - ${p.price} ${p.currency}</li>`).join("");
+  } catch (error) {
+    console.error("Error loading products:", error);
+    document.getElementById("products").innerHTML = `<li>Error: ${error.message}</li>`;
+  }
 }
 
 async function placeOrder() {
@@ -36,18 +44,33 @@ async function placeOrder() {
   const order = {
     id: "ORD-" + Date.now(),
     client: "Test Client",
-    items: [{ name: "Sample Item", qty: 1, price: 10 }],
+    items: [{ 
+      id: "sample-item", 
+      name: "Sample Item", 
+      quantity: 1, 
+      price: 10,
+      type: "piece"
+    }],
     date: new Date().toISOString()
   };
 
-  const res = await fetch(`${HUB_URL}/orders/${storeId}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(order)
-  });
-
-  const data = await res.json();
-  document.getElementById("orderResult").textContent = JSON.stringify(data, null, 2);
+  try {
+    const res = await fetch(`${HUB_URL}/orders/${storeId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(order)
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Order failed: ${res.status} ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    document.getElementById("orderResult").textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+    console.error("Error placing order:", error);
+    document.getElementById("orderResult").textContent = `Error: ${error.message}`;
+  }
 }
 </script>
 </body>
