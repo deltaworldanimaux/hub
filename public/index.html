@@ -288,7 +288,7 @@
         const order = {
           id: `ORD-${Date.now()}`,
           productId,
-          productName,
+          name: productName,  // ADDED MISSING PARAMETER
           date: new Date().toISOString(),
           status: 'pending'
         };
