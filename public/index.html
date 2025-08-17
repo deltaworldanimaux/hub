@@ -31,11 +31,47 @@ async function loadProducts() {
       throw new Error(`Failed to load products: ${res.status} ${res.statusText}`);
     }
     const products = await res.json();
-    const list = document.getElementById("products");
-    list.innerHTML = products.map(p => `<li>${p.name} - ${p.price} ${p.currency}</li>`).join("");
+    const container = document.getElementById("products");
+    
+    if (products.length === 0) {
+      container.innerHTML = "<p>No products found</p>";
+      return;
+    }
+    
+    // Create table with product details
+    let tableHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price (MAD)</th>
+            <th>Available</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    products.forEach(p => {
+      tableHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.price.toFixed(2)}</td>
+          <td>${p.amount}</td>
+          <td>${p.type}</td>
+        </tr>
+      `;
+    });
+    
+    tableHTML += `
+        </tbody>
+      </table>
+    `;
+    
+    container.innerHTML = tableHTML;
   } catch (error) {
     console.error("Error loading products:", error);
-    document.getElementById("products").innerHTML = `<li>Error: ${error.message}</li>`;
+    document.getElementById("products").innerHTML = `<p class="error">Error: ${error.message}</p>`;
   }
 }
 
