@@ -27,6 +27,17 @@ const StoreSchema = new mongoose.Schema({
 });
 
 const Store = mongoose.model("Store", StoreSchema);
+// Add at the top after express initialization
+const corsOptions = {
+  origin: '*', // Allow all origins (adjust in production)
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+
+// Add this before your routes
+app.options('*', cors(corsOptions)); // Enable preflight for all routes
 
 // ----- ROUTES -----
 
