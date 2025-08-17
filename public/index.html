@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hub Test - Client</title>
+</head>
+<body>
+  <h1>Client App - Test</h1>
+
+  <label>Store ID: 
+    <input type="text" id="storeId" value="store1">
+  </label>
+  <button onclick="loadProducts()">Load Products</button>
+
+  <h2>Products</h2>
+  <ul id="products"></ul>
+
+  <h2>Order</h2>
+  <button onclick="placeOrder()">Place Test Order</button>
+
+  <pre id="orderResult"></pre>
+
+<script>
+const HUB_URL = "https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev";
+
+async function loadProducts() {
+  const storeId = document.getElementById("storeId").value;
+  const res = await fetch(`${HUB_URL}/products/${storeId}`);
+  const products = await res.json();
+  const list = document.getElementById("products");
+  list.innerHTML = products.map(p => `<li>${p.name} - ${p.price}</li>`).join("");
+}
+
+async function placeOrder() {
+  const storeId = document.getElementById("storeId").value;
+  const order = {
+    id: "ORD-" + Date.now(),
+    client: "Test Client",
+    items: [{ name: "Sample Item", qty: 1, price: 10 }],
+    date: new Date().toISOString()
+  };
+
+  const res = await fetch(`${HUB_URL}/orders/${storeId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(order)
+  });
+
+  const data = await res.json();
+  document.getElementById("orderResult").textContent = JSON.stringify(data, null, 2);
+}
+</script>
+</body>
+</html>

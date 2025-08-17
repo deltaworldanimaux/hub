@@ -78,6 +78,8 @@ app.get("/", (req, res) => {
   res.send("Hub API is running ✅");
 });
 
+app.use(express.static("public"));
+
 // ----- START -----
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Hub running on port ${PORT}`));
