@@ -1,113 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Hub Test - Client</title>
+  <title>Online Stores Hub</title>
+  <style>
+    .store { padding: 15px; border: 1px solid #ddd; margin: 10px; cursor: pointer; }
+    .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+    .product-card { border: 1px solid #eee; padding: 10px; text-align: center; }
+  </style>
 </head>
 <body>
-  <h1>Client App - Test</h1>
+  <h1>Available Stores</h1>
+  <div id="stores-container"></div>
+  
+  <div id="products-container" style="display:none;">
+    <button onclick="showStores()">← Back to Stores</button>
+    <h2 id="store-title"></h2>
+    <div class="products"></div>
+  </div>
 
-  <label>Store ID: 
-    <input type="text" id="storeId" value="store_ma1">
-  </label>
-  <button onclick="loadProducts()">Load Products</button>
+  <script>
+    const HUB_URL = "https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev/";
+    let currentStoreId = null;
 
-  <h2>Products</h2>
-  <ul id="products"></ul>
-
-  <h2>Order</h2>
-  <button onclick="placeOrder()">Place Test Order</button>
-
-  <pre id="orderResult"></pre>
-
-<script>
-const HUB_URL = "https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev";
-
-async function loadProducts() {
-  const storeId = document.getElementById("storeId").value;
-  try {
-    const res = await fetch(`${HUB_URL}/products/${storeId}`);
-    if (!res.ok) {
-      throw new Error(`Failed to load products: ${res.status} ${res.statusText}`);
+    async function loadStores() {
+      const res = await fetch(`${HUB_URL}/stores`);
+      const stores = await res.json();
+      
+      const container = document.getElementById('stores-container');
+      container.innerHTML = '';
+      
+      stores.forEach(store => {
+        const storeEl = document.createElement('div');
+        storeEl.className = 'store';
+        storeEl.innerHTML = `<h3>${store.storeName}</h3>`;
+        storeEl.onclick = () => showProducts(store.storeId, store.storeName);
+        container.appendChild(storeEl);
+      });
     }
-    const products = await res.json();
-    const container = document.getElementById("products");
-    
-    if (products.length === 0) {
-      container.innerHTML = "<p>No products found</p>";
-      return;
-    }
-    
-    // Create table with product details
-    let tableHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Price (MAD)</th>
-            <th>Available</th>
-            <th>Type</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    
-    products.forEach(p => {
-      tableHTML += `
-        <tr>
-          <td>${p.name}</td>
-          <td>${p.price.toFixed(2)}</td>
-          <td>${p.amount}</td>
-          <td>${p.type}</td>
-        </tr>
-      `;
-    });
-    
-    tableHTML += `
-        </tbody>
-      </table>
-    `;
-    
-    container.innerHTML = tableHTML;
-  } catch (error) {
-    console.error("Error loading products:", error);
-    document.getElementById("products").innerHTML = `<p class="error">Error: ${error.message}</p>`;
-  }
-}
 
-async function placeOrder() {
-  const storeId = document.getElementById("storeId").value;
-  const order = {
-    id: "ORD-" + Date.now(),
-    client: "Test Client",
-    items: [{ 
-      id: "sample-item", 
-      name: "Sample Item", 
-      quantity: 1, 
-      price: 10,
-      type: "piece"
-    }],
-    date: new Date().toISOString()
-  };
-
-  try {
-    const res = await fetch(`${HUB_URL}/orders/${storeId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(order)
-    });
-    
-    if (!res.ok) {
-      throw new Error(`Order failed: ${res.status} ${res.statusText}`);
+    async function showProducts(storeId, storeName) {
+      currentStoreId = storeId;
+      document.getElementById('store-title').textContent = storeName;
+      document.getElementById('stores-container').style.display = 'none';
+      document.getElementById('products-container').style.display = 'block';
+      
+      const res = await fetch(`${HUB_URL}/products/${storeId}`);
+      const products = await res.json();
+      
+      const container = document.querySelector('#products-container .products');
+      container.innerHTML = '';
+      
+      products.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <h4>${product.name}</h4>
+          <p>${product.price} DH/${product.type}</p>
+          <button onclick="orderProduct('${product.id}')">Order</button>
+        `;
+        container.appendChild(card);
+      });
     }
-    
-    const data = await res.json();
-    document.getElementById("orderResult").textContent = JSON.stringify(data, null, 2);
-  } catch (error) {
-    console.error("Error placing order:", error);
-    document.getElementById("orderResult").textContent = `Error: ${error.message}`;
-  }
-}
-</script>
+
+    async function orderProduct(productId) {
+      const order = {
+        id: `ORD-${Date.now()}`,
+        productId,
+        date: new Date().toISOString(),
+        status: 'pending'
+      };
+      
+      await fetch(`${HUB_URL}/orders/${currentStoreId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(order)
+      });
+      
+      alert('Order placed successfully!');
+    }
+
+    function showStores() {
+      document.getElementById('products-container').style.display = 'none';
+      document.getElementById('stores-container').style.display = 'block';
+    }
+
+    // Initialize
+    loadStores();
+  </script>
 </body>
 </html>

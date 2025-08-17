@@ -20,6 +20,7 @@ db.once("open", () => console.log("✅ Connected to MongoDB Atlas"));
 // ----- MODELS -----
 const StoreSchema = new mongoose.Schema({
   storeId: { type: String, required: true, unique: true },
+  storeName: { type: String, required: true },
   products: { type: Array, default: [] },
   clients: { type: Array, default: [] },
   orders: { type: Array, default: [] },
@@ -46,6 +47,15 @@ app.get("/products/:storeId", async (req, res) => {
   res.json(store?.products || []);
 });
 
+// Get all stores
+app.get("/stores", async (req, res) => {
+  try {
+    const stores = await Store.find({}, 'storeId storeName');
+    res.json(stores);
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching stores" });
+  }
+});
 // 3. Client places an order
 app.post("/orders/:storeId", async (req, res) => {
   const { storeId } = req.params;
@@ -60,6 +70,16 @@ app.post("/orders/:storeId", async (req, res) => {
   res.json({ success: true, order });
 });
 
+app.delete("/orders/:storeId/:orderId", async (req, res) => {
+  const { storeId, orderId } = req.params;
+  
+  await Store.updateOne(
+    { storeId },
+    { $pull: { orders: { id: orderId } } }
+  );
+  
+  res.json({ success: true });
+});
 // 4. Store pulls new orders
 app.get("/sync/orders/:storeId", async (req, res) => {
   const store = await Store.findOne({ storeId: req.params.storeId });
