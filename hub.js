@@ -5,7 +5,7 @@ const cors = require("cors");
 
 const app = express();
 
-// Enhanced CORS configuration
+// CORS Configuration
 const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -17,11 +17,10 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
-// MongoDB connection with error handling
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000
 });
 
 const db = mongoose.connection;
@@ -34,11 +33,11 @@ const StoreSchema = new mongoose.Schema({
   storeName: { type: String, required: true },
   products: { type: Array, default: [] },
   orders: { type: Array, default: [] },
-}, { timestamps: true }); // Added timestamps
+}, { timestamps: true });
 
 const Store = mongoose.model("Store", StoreSchema);
 
-// ----- Routes -----
+// ----- Fixed Routes (removed extra quotes) -----
 
 // Get all stores
 app.get("/api/stores", async (req, res) => {
@@ -46,7 +45,6 @@ app.get("/api/stores", async (req, res) => {
     const stores = await Store.find({}, 'storeId storeName');
     res.json(stores);
   } catch (error) {
-    console.error("Error fetching stores:", error);
     res.status(500).json({ error: "Error fetching stores" });
   }
 });
@@ -65,7 +63,6 @@ app.post("/api/sync/products/:storeId", async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
-    console.error("Error syncing products:", error);
     res.status(500).json({ error: "Error syncing products" });
   }
 });
@@ -76,7 +73,6 @@ app.get("/api/products/:storeId", async (req, res) => {
     const store = await Store.findOne({ storeId: req.params.storeId });
     res.json(store?.products || []);
   } catch (error) {
-    console.error("Error fetching products:", error);
     res.status(500).json({ error: "Error fetching products" });
   }
 });
@@ -95,7 +91,6 @@ app.post("/api/orders/:storeId", async (req, res) => {
 
     res.json({ success: true, order });
   } catch (error) {
-    console.error("Error placing order:", error);
     res.status(500).json({ error: "Error placing order" });
   }
 });
@@ -106,7 +101,6 @@ app.get("/api/sync/orders/:storeId", async (req, res) => {
     const store = await Store.findOne({ storeId: req.params.storeId });
     res.json(store?.orders || []);
   } catch (error) {
-    console.error("Error fetching orders:", error);
     res.status(500).json({ error: "Error fetching orders" });
   }
 });
@@ -121,7 +115,6 @@ app.delete("/api/orders/:storeId/:orderId", async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting order:", error);
     res.status(500).json({ error: "Error deleting order" });
   }
 });
@@ -130,6 +123,8 @@ app.delete("/api/orders/:storeId/:orderId", async (req, res) => {
 app.get("/", (req, res) => {
   res.send("Hub API is running ✅");
 });
+
+app.use(express.static("public"));
 
 // Start server
 const PORT = process.env.PORT || 5000;
