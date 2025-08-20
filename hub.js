@@ -7,7 +7,7 @@ const app = express();
 
 // CORS Configuration
 const corsOptions = {
-  origin: '*',
+  origin: ['https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200
