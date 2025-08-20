@@ -7,14 +7,23 @@ const app = express();
 
 // CORS Configuration
 const corsOptions = {
-  origin: ['https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev', 'http://localhost:3000'],
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://362c5d06-d1be-432a-b361-36250802f590-00-vzq2xn38kwt1.kirk.replit.dev',
+      'http://localhost:3000'
+    ];
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // MongoDB connection
